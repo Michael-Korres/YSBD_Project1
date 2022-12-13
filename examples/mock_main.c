@@ -22,7 +22,7 @@ int main() {
 
   HP_CreateFile(FILE_NAME);
   HP_info* info = HP_OpenFile(FILE_NAME);
-  
+  //HP_info* info2 = HP_OpenFile(FILE_NAME);
 
   HP_CloseFile(info);
   BF_Close();

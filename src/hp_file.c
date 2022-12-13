@@ -27,36 +27,43 @@ int HP_CreateFile(char *fileName){
 }
 
 HP_info* HP_OpenFile(char *fileName){
-  // HP_INFO COUNT OF BLOCK IF CODE IS SLOW BF_GetBlockCounter(fd1, &blocks_num)
-  int fd1;
+  // HP_INFO COUNT OF BLOCK IF CODE IS SLOW BF_GetBlockCounter(file_describer, &blocks_num)
+  int file_describer;
   HP_info* HP = malloc(sizeof(HP_info));
-  HP->name = fileName;
-  HP->max_block = 100;
-  if (BF_OpenFile(fileName, &fd1) != BF_OK)
+  HP->filename = fileName;
+  if (BF_OpenFile(fileName, &file_describer) != BF_OK)
   {
     return NULL;
   }
-  HP->fd1 = fd1;
-    printf("fffffffffffffffffff\n");
+  int blocks_num;
 
-  //////////////////////////////
+  BF_GetBlockCounter(file_describer,&blocks_num);
   
+  HP->last_block = blocks_num - 1;
+
+  printf("The blocks_num: %d\n",blocks_num);
+
+  HP->file_describer = file_describer;
+  printf("The file describer: %d\n",file_describer);
+
+
   BF_Block *first_block;
   BF_Block_Init(&first_block);
-  BF_GetBlock(fd1,0,first_block);
   
-  printf("HHHHHHHHHHHHHHHHHHHHH\n");
+  for(int i = 0; i < blocks_num;i++){  
+    BF_GetBlock(file_describer,0,first_block);
+    char* data_p = BF_Block_GetData(first_block);
+    printf("Block: %d's data: %s\n",i,data_p);
 
-  char* data_p = BF_Block_GetData(first_block);
-  printf("1st block's data: %s\n",data_p);
-
+  }
+  
 ////////////////////////////////
   return HP;
 }
 
 
 int HP_CloseFile( HP_info* hp_info ){
-   if (BF_CloseFile(hp_info->fd1) != BF_OK)
+   if (BF_CloseFile(hp_info->file_describer) != BF_OK)
   {
     return -1;
   }
