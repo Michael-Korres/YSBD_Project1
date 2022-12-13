@@ -6,17 +6,21 @@
 #include "hp_file.h"
 #include "record.h"
 
-#define CALL_BF(call)       \
-{                           \
-  BF_ErrorCode code = call; \
-  if (code != BF_OK) {         \
-    BF_PrintError(code);    \
-    return HP_ERROR;        \
-  }                         \
-}
+#define CALL_BF(call)         \
+  {                           \
+    BF_ErrorCode code = call; \
+    if (code != BF_OK)        \
+    {                         \
+      BF_PrintError(code);    \
+      return HP_ERROR;        \
+    }                         \
+  }
 
-int HP_CreateFile(char *fileName){
-    if (BF_Init(LRU) != BF_OK){
+int HP_CreateFile(char *fileName)
+{
+
+  if (BF_Init(LRU) != BF_OK)
+  {
     return -1;
   }
   if (BF_CreateFile(fileName) != BF_OK)
@@ -75,11 +79,12 @@ int HP_CloseFile( HP_info* hp_info ){
   return 0;
 }
 
-int HP_InsertEntry(HP_info* hp_info, Record record){
-    return 0;
+int HP_InsertEntry(HP_info *hp_info, Record record)
+{
+  return 0;
 }
 
-int HP_GetAllEntries(HP_info* hp_info, int value){
-   return 0;
+int HP_GetAllEntries(HP_info *hp_info, int value)
+{
+  return 0;
 }
-
