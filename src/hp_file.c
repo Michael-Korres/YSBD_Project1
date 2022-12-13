@@ -53,7 +53,7 @@ HP_info *HP_OpenFile(char *fileName)
   BF_GetBlock(fd1, blocks_num, block);
   HP->bytes_in_block = sizeof(BF_Block_GetData(block));
   HP->block_num = blocks_num;
-  return HP;
+  return HP; /// se
 }
 
 int HP_CloseFile(HP_info *hp_info)
