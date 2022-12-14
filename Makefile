@@ -13,8 +13,12 @@ ht:
 mc:
 	@echo " Compile mock_main ...";
 	gcc -I ./include/ -L ./lib/ -Wl,-rpath,./lib/ ./examples/mock_main.c ./src/record.c ./src/hp_file.c -lbf -o ./build/mc_main -O2
-run:
+run_mc:
 	rm data.db | build/mc_main
+
+run_hp:
+	rm data.db | build/hp_main
+
 
 clean:
 	rm data.db 

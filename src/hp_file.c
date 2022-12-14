@@ -133,8 +133,8 @@ int HP_InsertEntry(HP_info *curr_HP_info, Record record){
 		
 		curr_HP_block_info->next_block_address = util_block;	//CURRENT BLOCK'S INFO
 		
-		curr_HP_info->last_block_address = util_block;
-		// curr_HP_info->last_block_id = curr_HP_block_info->key_attribute;
+		curr_HP_info->last_block_address = util_block;			//HP_INFO
+		// curr_HP_info->last_block_id++;
 
 
 		BF_Block_SetDirty(util_block);					//SET DIRTY AS MODIFIED
@@ -161,8 +161,46 @@ int HP_InsertEntry(HP_info *curr_HP_info, Record record){
 
 }
 
-int HP_GetAllEntries(HP_info *HP_info, int value)
-{
+int HP_GetAllEntries(HP_info *curr_HP_info, int value){
+	BF_Init(LRU);
+  	BF_Block *block;
+  	BF_Block_Init(&block);
+	
+
+	int blocks_num;
+	CALL_BF(BF_GetBlockCounter(curr_HP_info->file_describer,&blocks_num))
+  	int fd  = curr_HP_info->file_describer;
+
+	void* data;
+	HP_block_info* curr_HP_block_info;
+
+	int recs_num;
+
+	int i;
+
+	// printf("Blocks_num: %d\n",blocks_num);
+
+  	for (i = 1; i < blocks_num - 1; i++) {
+		
+    	CALL_BF(BF_GetBlock(fd, i, block));
+    	
+		data = BF_Block_GetData(block);
+    	Record* rec = data;
+		curr_HP_block_info = data + BF_BUFFER_SIZE - sizeof(HP_block_info);
+		recs_num = curr_HP_block_info->records_num;	
+
+		for(int j = 0; j < recs_num;j++){
+			if(rec[j].id == value){
+			    printRecord(rec[j]);
+				return i;	
+			}
+		}
+    	CALL_BF(BF_UnpinBlock(block));
+  	}
+
+  	BF_Block_Destroy(&block);
+
+	// BF_Close();
 	return 0;
 }
 

@@ -26,39 +26,38 @@ int main() {
 
   // HP_info_Print(curr_HP_info);
 
-  Record rec = randomRecord();
+  Record rec;
 
-  HP_InsertEntry(curr_HP_info,rec);
-
-  /////////////////////////
-
-  //CALL_OR_DIE(BF_Init(LRU));
-  BF_Block *block;
-  BF_Block_Init(&block);
-
-  
-  
-  int blocks_num;
-  int fd1 = curr_HP_info->file_describer;
-  CALL_OR_DIE(BF_GetBlockCounter(fd1, &blocks_num));
-
-  void* data;
-
-  for (int i = 1; i < blocks_num; ++i) {
-    printf("Contents of Block %d\n\t",i);
-    CALL_OR_DIE(BF_GetBlock(fd1, i, block));
-    data = BF_Block_GetData(block);
-    Record* rec= data;
-    printRecord(rec[0]);
-    // printf("\t");
-    // printRecord(rec[1]);
-    CALL_OR_DIE(BF_UnpinBlock(block));
+  for(int i = 0; i < RECORDS_NUM;i++){
+    rec = randomRecord();
+    HP_InsertEntry(curr_HP_info,rec);
   }
 
-  BF_Block_Destroy(&block);
+  // BF_Block *block;
+  // BF_Block_Init(&block);
+  
+  
+  // int blocks_num;
+  // int fd1 = curr_HP_info->file_describer;
+  // CALL_OR_DIE(BF_GetBlockCounter(fd1, &blocks_num));
 
+  // void* data;
 
-  //////////////////////
+  // for (int i = 1; i < blocks_num; ++i) {
+  //   printf("Contents of Block %d\n\t",i);
+  //   CALL_OR_DIE(BF_GetBlock(fd1, i, block));
+  //   data = BF_Block_GetData(block);
+  //   Record* rec= data;
+  //   printRecord(rec[0]);
+  //   // printf("\t");
+  //   // printRecord(rec[1]);
+  //   CALL_OR_DIE(BF_UnpinBlock(block));
+  // }
+
+  // BF_Block_Destroy(&block);
+
+  HP_GetAllEntries(curr_HP_info,2);
+
 
   HP_CloseFile(curr_HP_info);
   BF_Close();
