@@ -22,10 +22,9 @@ int main() {
 
   HP_CreateFile(FILE_NAME);
   HP_info* curr_HP_info = HP_OpenFile(FILE_NAME);
-  // curr_HP_info->capacity_of_records = curr_HP_info->block_capacity_in_bytes...
 
 
-  // HP_infoPrint(info);
+  HP_info_Print(curr_HP_info);
 
 
 

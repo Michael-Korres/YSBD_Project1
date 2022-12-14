@@ -45,7 +45,8 @@ int HP_CreateFile(char *fileName){
 	curr_HP_info->is_heap_file = 1;					//CONSTANT
 	curr_HP_info->last_block_id = 0;				//MODIFIED (probably) IN HP_InsertEntry()
 	curr_HP_info->last_block_address = NULL;		//MODIFIED (probably) IN HP_InsertEntry()
-	curr_HP_info->block_capacity_in_bytes = BF_BLOCK_SIZE;	//CONSTANT
+	curr_HP_info->block_capacity_of_records = 
+		(BF_BLOCK_SIZE - sizeof(HP_block_info))/sizeof(Record);	//CONSTANT
 	
 
 	BF_Block_SetDirty(first_block);					//SET DIRTY AS MODIFIED
@@ -90,8 +91,8 @@ int HP_CloseFile(HP_info* HP_info ){
 
 }
 
-int HP_InsertEntry(HP_info *HP_info, Record record){
-	
+int HP_InsertEntry(HP_info *curr_HP_info, Record record){
+	// curr_HP_info->
 
 
 	return 0;
@@ -103,9 +104,12 @@ int HP_GetAllEntries(HP_info *HP_info, int value)
 }
 
 
-void HP_infoPrint(HP_info * curr_HP_info){
+void HP_info_Print(HP_info * curr_HP_info){
 printf("curr_HP_info->filename: %s\n",curr_HP_info->filename);
 printf("curr_HP_info->last_block_id: %d\n",curr_HP_info->last_block_id);
 printf("curr_HP_info->file_describer: %d\n",curr_HP_info->file_describer);
 printf("curr_HP_info->is_heap_file: %d\n",curr_HP_info->is_heap_file);	
+printf("curr_HP_info->last_block_id: %d\n",curr_HP_info->last_block_id);
+printf("curr_HP_info->last_block_address: %p\n",curr_HP_info->last_block_address);		
+printf("curr_HP_info->block_capacity_of_records: %d\n",curr_HP_info->block_capacity_of_records);
 }

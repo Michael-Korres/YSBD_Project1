@@ -11,7 +11,7 @@ typedef struct
     BF_Block * last_block_address;
     int file_describer;
     int is_heap_file;
-    int block_capacity_in_bytes;
+    // int block_capacity_in_bytes;
     int block_capacity_of_records;
 } HP_info;
 
@@ -76,4 +76,4 @@ int HP_GetAllEntries(
 #endif // HP_FILE_H
 
 
-void HP_infoPrint(HP_info *);
+void HP_info_Print(HP_info *);
