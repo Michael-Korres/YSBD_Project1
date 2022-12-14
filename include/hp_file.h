@@ -11,6 +11,8 @@ typedef struct
     BF_Block * last_block_address;
     int file_describer;
     int is_heap_file;
+    int block_capacity_in_bytes;
+    int block_capacity_of_records;
 } HP_info;
 
 /* Η δομή HP_block_info κρατάει μεταδεδομένα που σχετίζονται με το block ενός αρχείου σωρού*/
@@ -18,9 +20,8 @@ typedef struct
 {
     BF_Block * next_block_address;
     int records_num;
-    int capacity;
-    int occupied_mem;
     Record_Attribute key_attribute;
+    //Record * block_index;
 } HP_block_info;
 
 /*Η συνάρτηση HP_CreateFile χρησιμοποιείται για τη δημιουργία και

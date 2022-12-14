@@ -21,15 +21,14 @@ int main() {
   BF_Init(LRU);
 
   HP_CreateFile(FILE_NAME);
-  HP_info* info = HP_OpenFile(FILE_NAME);
-  
-
-  // printf("HP_info->filename: %s\n",info->filename);
-  // printf("HP_info->last_block_id: %d\n",info->last_block_id);
-  // printf("HP_info->file_describer: %d\n",info->file_describer);
-  // printf("HP_info->is_heap_file: %d\n",info->is_heap_file);
+  HP_info* curr_HP_info = HP_OpenFile(FILE_NAME);
+  // curr_HP_info->capacity_of_records = curr_HP_info->block_capacity_in_bytes...
 
 
-  // HP_CloseFile(info);
-  // BF_Close();
+  // HP_infoPrint(info);
+
+
+
+  HP_CloseFile(curr_HP_info);
+  BF_Close();
 }

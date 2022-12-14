@@ -18,3 +18,6 @@ run:
 
 clean:
 	rm data.db 
+
+gdb_run:
+	gdb build/mc_main
