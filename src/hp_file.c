@@ -40,14 +40,21 @@ int HP_CreateFile(char *fileName){
 									//THE INFO EASIER
 
 	
-	curr_HP_info->filename = fileName;				//CONSTANT
-	curr_HP_info->file_describer = file_describer;	//MODIFIED IN EACH BF_OpenFile()
-	curr_HP_info->is_heap_file = 1;					//CONSTANT
+	curr_HP_info->filename = fileName;				//CONSTANT                                	
+	curr_HP_info->file_describer = file_describer;	//MODIFIED IN EACH BF_OpenFile()          
+	curr_HP_info->is_heap_file = 1;					//CONSTANT                               	
 	curr_HP_info->last_block_id = 0;				//MODIFIED (probably) IN HP_InsertEntry()
 	curr_HP_info->last_block_address = NULL;		//MODIFIED (probably) IN HP_InsertEntry()
 	curr_HP_info->block_capacity_of_records = 
-		(BF_BLOCK_SIZE - sizeof(HP_block_info))/sizeof(Record);	//CONSTANT
+		(BF_BLOCK_SIZE - sizeof(HP_block_info))/sizeof(Record);	//CONSTANT: under_bound((B - H)/r)
+																//B:Block size,H: Header size and r:record size
 	
+	HP_block_info* curr_HP_block_info =  data + BF_BUFFER_SIZE - sizeof(HP_block_info);	//WRITE THE HP_BLOCK_INFO AT THE END
+		curr_HP_block_info->key_attribute = ID;		//SPECIAL NODE
+		curr_HP_block_info->next_block_address = NULL;
+		curr_HP_block_info->records_num = 7; // > 6 TRICK
+
+
 
 	BF_Block_SetDirty(first_block);					//SET DIRTY AS MODIFIED
 	BF_UnpinBlock(first_block);						//UNPIN BLOCK AS WE DO NOT NEED IT
@@ -73,9 +80,12 @@ HP_info* HP_OpenFile(char *fileName){
 	void * data = BF_Block_GetData(first_block);	//EXTRACT BLOCK'S DATA A.K.A SPECIAL INFO
 	curr_HP_info = (HP_info *)data;			//STORE THE SPECIAL INFO IN THE HP_Info POINTER
 
+	if(!curr_HP_info->is_heap_file)return NULL;	//if not a heap file => error
+
 	curr_HP_info->file_describer = file_describer;
-	BF_Block_SetDirty(first_block);
-	BF_UnpinBlock(first_block);	
+	BF_Block_SetDirty(first_block);					//SET DIRTY AS MODIFIED
+	BF_UnpinBlock(first_block);						//UNPIN BLOCK AS WE DO NOT NEED IT
+	
 
 	return curr_HP_info;
 
@@ -92,10 +102,63 @@ int HP_CloseFile(HP_info* HP_info ){
 }
 
 int HP_InsertEntry(HP_info *curr_HP_info, Record record){
-	// curr_HP_info->
+	BF_Init(LRU);
+	BF_Block* curr_block;
+	BF_Block_Init(&curr_block);
+	BF_GetBlock(curr_HP_info->file_describer,curr_HP_info->last_block_id,curr_block);	//GET THE LAST RECORD OF THE FILE
 
+	void* curr_data = BF_Block_GetData(curr_block);	//GET ITS DATA ADDRESS
+    
+	HP_block_info* curr_HP_block_info = curr_data + BF_BUFFER_SIZE - sizeof(HP_block_info);	//GET ITS INFO
+	
+	if(curr_HP_block_info->records_num >= curr_HP_info->block_capacity_of_records){	//IF THE RECORD CANNOT BE STORED IN THE LAST BLOCK
+		//CREATE A NEW ONE AND APPEND IT TO THE FILE
+		
+		BF_Block* util_block;		//CREATE A UTILITY BLOCK
+		BF_Block_Init(&util_block);
+	
+		BF_AllocateBlock(curr_HP_info->file_describer,util_block);	//ALLOCATE IT TO THE FILE
+
+		void* util_data = BF_Block_GetData(util_block);	//GET THE DATA ADDRESS
+    	
+		Record* record_slot = util_data;		//WRITE THE RECORD AT THE BEGINNING
+		record_slot[0] = record;
+
+		HP_block_info* util_HP_block_info =  util_data + BF_BUFFER_SIZE - sizeof(HP_block_info);	//WRITE THE HP_BLOCK_INFO AT THE END
+		util_HP_block_info->key_attribute = record.id;	
+		util_HP_block_info->next_block_address = NULL;
+		util_HP_block_info->records_num = 1;
+		
+		//UPDATE THE CURRENT BLOCK'S INFO AND THE HP INFO
+		
+		curr_HP_block_info->next_block_address = util_block;	//CURRENT BLOCK'S INFO
+		
+		curr_HP_info->last_block_address = util_block;
+		// curr_HP_info->last_block_id = curr_HP_block_info->key_attribute;
+
+
+		BF_Block_SetDirty(util_block);					//SET DIRTY AS MODIFIED
+		BF_UnpinBlock(util_block);						//UNPIN BLOCK AS WE DO NOT NEED IT
+
+	}
+	else{
+		
+		int index_of_the_last_rec = curr_HP_block_info->records_num;
+
+		Record* record_slot = curr_data;		//WRITE THE RECORD AT THE BEGINNING
+		record_slot[index_of_the_last_rec] = record;
+
+		curr_HP_block_info->records_num++;	//UPDATE THE BLOCK'S INFO
+
+	}		
+
+	BF_Block_SetDirty(curr_block);					//SET DIRTY AS MODIFIED
+	BF_UnpinBlock(curr_block);						//UNPIN BLOCK AS WE DO NOT NEED IT
 
 	return 0;
+
+	BF_Close();
+
 }
 
 int HP_GetAllEntries(HP_info *HP_info, int value)
