@@ -73,3 +73,6 @@ int HP_GetAllEntries(
     int id /* η τιμή id της εγγραφής στην οποία πραγματοποιείται η αναζήτηση*/);
 
 #endif // HP_FILE_H
+
+
+void HP_infoPrint(HP_info *);

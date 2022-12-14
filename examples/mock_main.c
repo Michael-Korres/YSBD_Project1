@@ -6,7 +6,7 @@
 #include "hp_file.h"
 
 #define RECORDS_NUM 1000 // you can change it if you want
-#define FILE_NAME "block_example.db"
+#define FILE_NAME "data.db"
 
 #define CALL_OR_DIE(call)     \
   {                           \
@@ -22,8 +22,14 @@ int main() {
 
   HP_CreateFile(FILE_NAME);
   HP_info* info = HP_OpenFile(FILE_NAME);
-  //HP_info* info2 = HP_OpenFile(FILE_NAME);
+  
 
-  HP_CloseFile(info);
-  BF_Close();
+  // printf("HP_info->filename: %s\n",info->filename);
+  // printf("HP_info->last_block_id: %d\n",info->last_block_id);
+  // printf("HP_info->file_describer: %d\n",info->file_describer);
+  // printf("HP_info->is_heap_file: %d\n",info->is_heap_file);
+
+
+  // HP_CloseFile(info);
+  // BF_Close();
 }
