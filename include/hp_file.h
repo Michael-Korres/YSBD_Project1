@@ -6,11 +6,22 @@
 /* Η δομή HP_info κρατάει μεταδεδομένα που σχετίζονται με το αρχείο σωρού*/
 typedef struct
 {
-   char *filename;
-    int last_block;
+    char *filename;
+    int last_block_id;
+    BF_Block * last_block_address;
     int file_describer;
-
+    int is_heap_file;
 } HP_info;
+
+/* Η δομή HP_block_info κρατάει μεταδεδομένα που σχετίζονται με το block ενός αρχείου σωρού*/
+typedef struct
+{
+    BF_Block * next_block_address;
+    int records_num;
+    int capacity;
+    int occupied_mem;
+    Record_Attribute key_attribute;
+} HP_block_info;
 
 /*Η συνάρτηση HP_CreateFile χρησιμοποιείται για τη δημιουργία και
 κατάλληλη αρχικοποίηση ενός άδειου αρχείου σωρού με όνομα fileName.
