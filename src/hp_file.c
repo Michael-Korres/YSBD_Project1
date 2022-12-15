@@ -27,13 +27,6 @@ int HP_CreateFile(char *fileName){
 	BF_AllocateBlock(file_describer,first_block);	//BLOCK => THE SPECIAL BLOCK(1st) OF AN EMPTY HEAP FILE
 	
 
-	// HP_block_info * curr_HP_block_info = malloc(sizeof(HP_block_info));	//INITIALIZE THE BLOCK INFO
-	// curr_HP_block_info->next_block_address = NULL;
-	// // curr_HP_block_info->next_block_id = 
-	// curr_HP_block_info->records_num = 0;
-	// curr_HP_block_info->capacity = BF_BLOCK_SIZE;
-	// curr_HP_block_info->occupied_mem = occupied_mem;
-	
 
 	void * data = BF_Block_GetData(first_block);	//GET ACCESS TO BLOCK'S DATA SECTION
 	HP_info * curr_HP_info = data ;	//ASSIGN THE ADDRESS TO A HP_info POINTER TO HANDLE AND STORE
@@ -43,12 +36,13 @@ int HP_CreateFile(char *fileName){
 	curr_HP_info->filename = fileName;				//CONSTANT                                	
 	curr_HP_info->file_describer = file_describer;	//MODIFIED IN EACH BF_OpenFile()          
 	curr_HP_info->is_heap_file = 1;					//CONSTANT                               	
-	curr_HP_info->last_block_id = 0;				//MODIFIED (probably) IN HP_InsertEntry()
 	curr_HP_info->last_block_address = NULL;		//MODIFIED (probably) IN HP_InsertEntry()
 	curr_HP_info->block_capacity_of_records = 
 		(BF_BLOCK_SIZE - sizeof(HP_block_info))/sizeof(Record);	//CONSTANT: under_bound((B - H)/r)
 																//B:Block size,H: Header size and r:record size
 	
+	curr_HP_info->storage_location = first_block;	//WE HOLD THE BLOCK WERE THE HP_info IS STORED AND WE WILL DEALLOCATE THE RESPECTABLE BLOCK WHEN WE CLOSE THE FILE
+
 	HP_block_info* curr_HP_block_info =  data + BF_BUFFER_SIZE - sizeof(HP_block_info);	//WRITE THE HP_BLOCK_INFO AT THE END
 		curr_HP_block_info->key_attribute = ID;		//SPECIAL NODE
 		curr_HP_block_info->next_block_address = NULL;
@@ -59,15 +53,10 @@ int HP_CreateFile(char *fileName){
 	BF_Block_SetDirty(first_block);					//SET DIRTY AS MODIFIED
 	BF_UnpinBlock(first_block);						//UNPIN BLOCK AS WE DO NOT NEED IT
 	
-
-	CALL_BF(BF_CloseFile(file_describer))			//CLOSE FILE
-	CALL_BF(BF_Close());							//CLOSE BUFFER => SAVE IN THE DISK
 	return 0;
 }
 
 HP_info* HP_OpenFile(char *fileName){	
-	if (BF_Init(LRU) != BF_OK)return NULL;	//INITIALIZE BUFFER
-
 	int file_describer;
 	if (BF_OpenFile(fileName, &file_describer) != BF_OK)return NULL;	//OPEN FILES
 
@@ -83,29 +72,39 @@ HP_info* HP_OpenFile(char *fileName){
 	if(!curr_HP_info->is_heap_file)return NULL;	//if not a heap file => error
 
 	curr_HP_info->file_describer = file_describer;
-	BF_Block_SetDirty(first_block);					//SET DIRTY AS MODIFIED
-	BF_UnpinBlock(first_block);						//UNPIN BLOCK AS WE DO NOT NEED IT
 	
-
+	BF_Block_SetDirty(first_block);					//SET DIRTY AS MODIFIED
 	return curr_HP_info;
 
 }
 
 
-int HP_CloseFile(HP_info* HP_info ){
+int HP_CloseFile(HP_info* curr_HP_info ){
+	
+	BF_Block_SetDirty(curr_HP_info->storage_location);
+	BF_UnpinBlock(curr_HP_info->storage_location);
 
 
-	CALL_BF(BF_CloseFile(HP_info->file_describer));	//CLOSE FILE
+	CALL_BF(BF_CloseFile(curr_HP_info->file_describer));	//CLOSE FILE
 	CALL_BF(BF_Close());							//CLOSE BUFFER => SAVE IN THE DISK
 	return 0;
 
 }
 
 int HP_InsertEntry(HP_info *curr_HP_info, Record record){
-	BF_Init(LRU);
 	BF_Block* curr_block;
+
 	BF_Block_Init(&curr_block);
-	BF_GetBlock(curr_HP_info->file_describer,curr_HP_info->last_block_id,curr_block);	//GET THE LAST RECORD OF THE FILE
+
+	int last_block_id = 0;
+	
+
+	CALL_BF(BF_GetBlockCounter(curr_HP_info->file_describer,&last_block_id))
+	last_block_id--;		//GET LAST BLOCK'S ID
+	
+	CALL_BF(BF_GetBlock(curr_HP_info->file_describer,last_block_id,curr_block))	//GET THE LAST RECORD OF THE FILE
+
+
 
 	void* curr_data = BF_Block_GetData(curr_block);	//GET ITS DATA ADDRESS
     
@@ -134,11 +133,12 @@ int HP_InsertEntry(HP_info *curr_HP_info, Record record){
 		curr_HP_block_info->next_block_address = util_block;	//CURRENT BLOCK'S INFO
 		
 		curr_HP_info->last_block_address = util_block;			//HP_INFO
-		// curr_HP_info->last_block_id++;
 
 
 		BF_Block_SetDirty(util_block);					//SET DIRTY AS MODIFIED
 		BF_UnpinBlock(util_block);						//UNPIN BLOCK AS WE DO NOT NEED IT
+
+		// BF_Block_Destroy(&util_block);
 
 	}
 	else{
@@ -154,63 +154,66 @@ int HP_InsertEntry(HP_info *curr_HP_info, Record record){
 
 	BF_Block_SetDirty(curr_block);					//SET DIRTY AS MODIFIED
 	BF_UnpinBlock(curr_block);						//UNPIN BLOCK AS WE DO NOT NEED IT
+	BF_Block_Destroy(&curr_block);					//DESTROY BLOCK
 
 	return 0;
 
-	BF_Close();
 
 }
 
 int HP_GetAllEntries(HP_info *curr_HP_info, int value){
-	BF_Init(LRU);
-  	BF_Block *block;
+
+ 	BF_Block *block;			//ALLOCATE SPACE FOR A BLOCK
   	BF_Block_Init(&block);
 	
 
-	int blocks_num;
-	CALL_BF(BF_GetBlockCounter(curr_HP_info->file_describer,&blocks_num))
-  	int fd  = curr_HP_info->file_describer;
+	int blocks_num;	
+	CALL_BF(BF_GetBlockCounter(curr_HP_info->file_describer,&blocks_num))	//GET THE NUM OF BLOCKS IN THE FILE(COUNTING THE 1st)
 
-	void* data;
-	HP_block_info* curr_HP_block_info;
 
-	int recs_num;
+  	int fd  = curr_HP_info->file_describer;		//
+												//
+	void* data;									//
+	HP_block_info* curr_HP_block_info;			//		SOME VARIABLES FOR CLEANER CODE
+												//
+	int recs_num;								//
+												//
+	int i;										//
 
-	int i;
 
-	// printf("Blocks_num: %d\n",blocks_num);
-
-  	for (i = 1; i < blocks_num - 1; i++) {
+  	for (i = 1; i < blocks_num - 1; i++) {	//FOR EACH BLOCK AFTER THE 1st
 		
-    	CALL_BF(BF_GetBlock(fd, i, block));
+    	CALL_BF(BF_GetBlock(fd, i, block));		//GET IT
     	
-		data = BF_Block_GetData(block);
-    	Record* rec = data;
-		curr_HP_block_info = data + BF_BUFFER_SIZE - sizeof(HP_block_info);
-		recs_num = curr_HP_block_info->records_num;	
+		data = BF_Block_GetData(block);		//GET ITS DATA
 
-		for(int j = 0; j < recs_num;j++){
-			if(rec[j].id == value){
-			    printRecord(rec[j]);
-				return i;	
+    	Record* rec = data;													//ASSIGN THE DATA ADDRESS TO A RECORD POINTER TO HANDLE THE RECORDS
+		curr_HP_block_info = data + BF_BUFFER_SIZE - sizeof(HP_block_info);	//GET THE BLOCK'S INFO
+		recs_num = curr_HP_block_info->records_num;							//EXTRACT FORM THAT HOW MANY RECORDS ARE INSIDE THE BLOCK
+
+		for(int j = 0; j < recs_num;j++){		//FOR EACH RECORD
+			if(rec[j].id == value){				//IF ITS ID IS EQUAL TO THE GIVEN VALUE
+			    printRecord(rec[j]);			//PRINT IT
+				CALL_BF(BF_UnpinBlock(block));	//
+				BF_Block_Destroy(&block);		//DEALLOCATE THE SPACE
+
+				return i;						//RETURN THE ID OF THE BLOCK IN WHICH IT WAS FOUND
 			}
 		}
-    	CALL_BF(BF_UnpinBlock(block));
+		CALL_BF(BF_UnpinBlock(block));			//WE WANT AFTER EACH ITERATION THE MRU THAT WE DO NOT NEED TO BE REPLACED
   	}
 
-  	BF_Block_Destroy(&block);
+	BF_Block_Destroy(&block);					//DEALLOCATE THE SPACE IF VALUE WAS NOT FOUND IN KEYS
 
-	// BF_Close();
+
 	return 0;
 }
 
 
 void HP_info_Print(HP_info * curr_HP_info){
 printf("curr_HP_info->filename: %s\n",curr_HP_info->filename);
-printf("curr_HP_info->last_block_id: %d\n",curr_HP_info->last_block_id);
 printf("curr_HP_info->file_describer: %d\n",curr_HP_info->file_describer);
 printf("curr_HP_info->is_heap_file: %d\n",curr_HP_info->is_heap_file);	
-printf("curr_HP_info->last_block_id: %d\n",curr_HP_info->last_block_id);
 printf("curr_HP_info->last_block_address: %p\n",curr_HP_info->last_block_address);		
 printf("curr_HP_info->block_capacity_of_records: %d\n",curr_HP_info->block_capacity_of_records);
 }

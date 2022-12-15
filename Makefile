@@ -24,4 +24,4 @@ clean:
 	rm data.db 
 
 gdb_run:
-	gdb build/mc_main
+	gdb build/hp_main

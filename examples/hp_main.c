@@ -18,27 +18,27 @@
   }
 
 int main() {
-  BF_Init(LRU);
+    BF_Init(MRU);
 
-  HP_CreateFile(FILE_NAME);
-  HP_info* curr_HP_info = HP_OpenFile(FILE_NAME);
+    HP_CreateFile(FILE_NAME);
+    HP_info* curr_HP_info = HP_OpenFile(FILE_NAME);
 
-  Record record;
-  srand(time(NULL));
-  int r;
-  printf("Insert Entries\n");
-  for (int id = 0; id < RECORDS_NUM; ++id) {
-    record = randomRecord();
-    HP_InsertEntry(curr_HP_info, record);
-  }
+    Record record;
+    srand(time(NULL));
+    int r;
+    printf("Insert Entries\n");
+    
+    for (int id = 0; id < RECORDS_NUM; id++) {
+      record = randomRecord();
+      HP_InsertEntry(curr_HP_info, record);
+    }
 
-  printf("RUN PrintAllEntries\n");
-  int id = rand() % RECORDS_NUM;
-  printf("\nSearching for: %d\n",id);
-  HP_GetAllEntries(curr_HP_info, id);
+    printf("RUN PrintAllEntries\n");
+    int id = rand() % RECORDS_NUM;
+    printf("\nSearching for: %d\n",id);
+    HP_GetAllEntries(curr_HP_info, id);
 
 
 
   HP_CloseFile(curr_HP_info);
-  BF_Close();
 }

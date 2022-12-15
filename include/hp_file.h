@@ -1,18 +1,19 @@
 #ifndef HP_FILE_H
 #define HP_FILE_H
 #include <record.h>
+#include "bf.h"
 #define HP_ERROR -1
 
 /* Η δομή HP_info κρατάει μεταδεδομένα που σχετίζονται με το αρχείο σωρού*/
 typedef struct
 {   
-    char *filename;                                                                     
-    int last_block_id;                                                  
-    BF_Block * last_block_address;                                              
+    char *filename;                                                             
+    BF_Block* last_block_address;                                              
     int file_describer;                                             
     int is_heap_file;                                               
     // int block_capacity_in_bytes;                                             
-    int block_capacity_of_records;                                              
+    int block_capacity_of_records;     
+    BF_Block*  storage_location;
 } HP_info;
 
 /* Η δομή HP_block_info κρατάει μεταδεδομένα που σχετίζονται με το block ενός αρχείου σωρού*/
