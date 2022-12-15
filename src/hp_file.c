@@ -43,7 +43,7 @@ int HP_CreateFile(char *fileName){
 	
 	curr_HP_info->storage_location = first_block;	//WE HOLD THE BLOCK WERE THE HP_info IS STORED AND WE WILL DEALLOCATE THE RESPECTABLE BLOCK WHEN WE CLOSE THE FILE
 
-	HP_block_info* curr_HP_block_info =  data + BF_BUFFER_SIZE - sizeof(HP_block_info);	//WRITE THE HP_BLOCK_INFO AT THE END
+	HP_block_info* curr_HP_block_info =  data + BF_BLOCK_SIZE - sizeof(HP_block_info);	//WRITE THE HP_BLOCK_INFO AT THE END
 		curr_HP_block_info->key_attribute = ID;		//SPECIAL NODE
 		curr_HP_block_info->next_block_address = NULL;
 		curr_HP_block_info->records_num = 7; // > 6 TRICK
@@ -108,7 +108,7 @@ int HP_InsertEntry(HP_info *curr_HP_info, Record record){
 
 	void* curr_data = BF_Block_GetData(curr_block);	//GET ITS DATA ADDRESS
     
-	HP_block_info* curr_HP_block_info = curr_data + BF_BUFFER_SIZE - sizeof(HP_block_info);	//GET ITS INFO
+	HP_block_info* curr_HP_block_info = curr_data + BF_BLOCK_SIZE - sizeof(HP_block_info);	//GET ITS INFO
 	
 	if(curr_HP_block_info->records_num >= curr_HP_info->block_capacity_of_records){	//IF THE RECORD CANNOT BE STORED IN THE LAST BLOCK
 		//CREATE A NEW ONE AND APPEND IT TO THE FILE
@@ -123,7 +123,7 @@ int HP_InsertEntry(HP_info *curr_HP_info, Record record){
 		Record* record_slot = util_data;		//WRITE THE RECORD AT THE BEGINNING
 		record_slot[0] = record;
 
-		HP_block_info* util_HP_block_info =  util_data + BF_BUFFER_SIZE - sizeof(HP_block_info);	//WRITE THE HP_BLOCK_INFO AT THE END
+		HP_block_info* util_HP_block_info =  util_data + BF_BLOCK_SIZE - sizeof(HP_block_info);	//WRITE THE HP_BLOCK_INFO AT THE END
 		util_HP_block_info->key_attribute = record.id;	
 		util_HP_block_info->next_block_address = NULL;
 		util_HP_block_info->records_num = 1;
@@ -188,7 +188,7 @@ int HP_GetAllEntries(HP_info *curr_HP_info, int value){
 		data = BF_Block_GetData(block);		//GET ITS DATA
 
     	Record* rec = data;													//ASSIGN THE DATA ADDRESS TO A RECORD POINTER TO HANDLE THE RECORDS
-		curr_HP_block_info = data + BF_BUFFER_SIZE - sizeof(HP_block_info);	//GET THE BLOCK'S INFO
+		curr_HP_block_info = data + BF_BLOCK_SIZE - sizeof(HP_block_info);	//GET THE BLOCK'S INFO
 		recs_num = curr_HP_block_info->records_num;							//EXTRACT FORM THAT HOW MANY RECORDS ARE INSIDE THE BLOCK
 
 		for(int j = 0; j < recs_num;j++){		//FOR EACH RECORD
