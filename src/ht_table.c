@@ -7,8 +7,6 @@
 #include "ht_table.h"
 #include "record.h"
 
-#define OFFSET 2 * sizeof(int)
-
 int open_files = 0;
 
 // Extremely sophisticated hash function:
@@ -46,7 +44,11 @@ int HT_CreateFile(char *fileName, int buckets)
 
   // Write "HT" in the beginning of first block to signify
   // we have an HT file.
-
+  //  HT_block_info * hp_block=malloc(sizeof(HT_block_info));
+  // hp_block->name[0] = 'H';
+  // hp_block->name[1] = 'T';
+  // hp_block->buckets = buckets;
+  // hp_block->curr_number = 0;
   HT_block_info hp_block;
   hp_block.name[0] = 'H';
   hp_block.name[1] = 'T';
@@ -108,8 +110,10 @@ HT_info *HT_OpenFile(char *fileName)
   int fd1, count;
   if (BF_OpenFile(fileName, &fd1) != BF_OK)
   {
+    fprintf(stderr, "bfopenfile.\n");
     return NULL;
   }
+
   BF_GetBlockCounter(fd1, &count);
   // Init block.
   BF_Block *block;
@@ -118,31 +122,38 @@ HT_info *HT_OpenFile(char *fileName)
 
   if (BF_GetBlock(fd1, 0, block) != BF_OK)
   {
+    fprintf(stderr, "bfgetblock.\n");
     return NULL;
   }
   data = BF_Block_GetData(block);
   HT_block_info ht;
+
   memcpy(&ht, data, 10);
+
   // Check if it's not HT file and close it.
-  if (ht.name[0] != 'H' && ht.name[1] != 'T')
+  fprintf(stderr, "hi.\n");
+  if (ht.name[0] != 'H' && ht.name[1] != 'T') //(ht->name[0] != 'H' && ht->name[1] != 'T')
   {
     if (BF_UnpinBlock(block) != BF_OK)
     {
+      fprintf(stderr, "bfunpinblock.\n");
       return NULL;
     }
     BF_Block_Destroy(&block);
     if (BF_CloseFile(fd1) != BF_OK)
     {
+      fprintf(stderr, "bfclose.\n");
       return NULL;
     }
     return NULL;
   }
-
+  fprintf(stderr, "hi.\n");
   // GIVE HP_INFO
+  fprintf(stderr, "hi.\n");
   HT_info *curr_HP_info = malloc(sizeof(HT_info));
   curr_HP_info->filename = fileName;
   curr_HP_info->fd1 = fd1;
-  curr_HP_info->buckets = ht.buckets;
+  curr_HP_info->buckets = ht.buckets; // ht->blocks;
   curr_HP_info->max_recod_in_block = (BF_BLOCK_SIZE - sizeof(HT_block_info)) % sizeof(Record);
   curr_HP_info->max_blocks = count;
   // Close block.
@@ -151,7 +162,7 @@ HT_info *HT_OpenFile(char *fileName)
     return NULL;
   }
   BF_Block_Destroy(&block);
-
+  fprintf(stderr, "hello.\n");
   return curr_HP_info;
 }
 
@@ -168,16 +179,21 @@ int HT_CloseFile(HT_info *HT_info)
 
 int HT_InsertEntry(HT_info *ht_info, Record record)
 {
+  printf("s\n");
   // Get hashed value:
   int fd1 = ht_info->fd1;
+  printf("s\n");
   int buckets = ht_info->buckets;
+  printf("s2\n");
   int hashvalue = hash(record.id, buckets);
+  printf("s3\n");
   int block_number = hashvalue * (BF_BUFFER_SIZE % (BF_BUFFER_SIZE % buckets));
   // Find bucket:
+  printf("s1\n");
   int bucket;
   BF_Block *Block_to_insert;
   BF_Block_Init(&Block_to_insert);
-
+  printf("s2\n");
   void *data;
   if (BF_GetBlock(fd1, block_number, Block_to_insert) != BF_OK)
   {
@@ -186,6 +202,7 @@ int HT_InsertEntry(HT_info *ht_info, Record record)
   data = BF_Block_GetData(Block_to_insert);
   HT_block_info ht;
   memcpy(&ht, data, 10);
+  printf("s3\n");
   if (ht.curr_number < ht_info->max_recod_in_block) ////an exei xoro to proto block toy bucket valto ekei
   {
     int data_memory = ht.curr_number * sizeof(Record) + sizeof(HT_block_info) + 1;
