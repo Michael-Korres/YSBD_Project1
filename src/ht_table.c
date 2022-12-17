@@ -23,13 +23,16 @@ int HT_CreateFile(char *fileName, int buckets)
     printf("why you use the hash table.\n");
   }
   int fd1;
+
   if (BF_CreateFile(fileName) != BF_OK)
   {
+    printf("cannot create file\n");
     return -1;
   }
 
   if (BF_OpenFile(fileName, &fd1) != BF_OK)
   {
+    printf("cannot open file\n");
     return -1;
   }
   // Create first block.
