@@ -9,13 +9,13 @@ typedef struct
     int fd1;
     int max_recod_in_block;
     int max_blocks;
+    int sizeofblocks;
 } HT_info;
 
 typedef struct
 {
-    char name[2];
+    char name[3];
     int buckets;
-    int curr_number;
 } HT_block_info;
 /*Η συνάρτηση HT_CreateFile χρησιμοποιείται για τη δημιουργία
 και κατάλληλη αρχικοποίηση ενός άδειου αρχείου κατακερματισμού

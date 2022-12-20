@@ -35,6 +35,7 @@ int HT_CreateFile(char *fileName, int buckets)
     printf("cannot open file\n");
     return -1;
   }
+
   // Create first block.
   BF_Block *block;
   BF_Block_Init(&block);
@@ -43,33 +44,58 @@ int HT_CreateFile(char *fileName, int buckets)
   {
     return -1;
   }
-  void *data = BF_Block_GetData(block);
 
-  // Write "HT" in the beginning of first block to signify
-  // we have an HT file.
-  //  HT_block_info * hp_block=malloc(sizeof(HT_block_info));
-  // hp_block->name[0] = 'H';
-  // hp_block->name[1] = 'T';
-  // hp_block->buckets = buckets;
-  // hp_block->curr_number = 0;
+  char *data = BF_Block_GetData(block);
+
+  // Calculate blocks needed for index.
+
+  int a = (BF_BUFFER_SIZE / buckets);
+
+  int b = (BF_BUFFER_SIZE / a);
+
+  int blocksNeeded = (b * a); ////oysiastika ama exoyme bucket=6 tote BF_BUFFER_SIZE % buckets=16 ,etsi 6*16=96 ara max 96 block gia na einai isa
+
   HT_block_info hp_block;
   hp_block.name[0] = 'H';
   hp_block.name[1] = 'T';
   hp_block.buckets = buckets;
-  hp_block.curr_number = 0;
-  memcpy(data, &hp_block, 10);
+  if ((blocksNeeded * sizeof(int)) > BF_BLOCK_SIZE - 8)
+  {
+    return -1;
+  }
+  int this[blocksNeeded];
+
+  for (int i = 0; i < blocksNeeded; i++)
+  {
+    this[i] = 0;
+  }
+
+  memcpy(data, &hp_block, sizeof(HT_block_info));
+  memcpy(data, &hp_block, (blocksNeeded * sizeof(int)));
+
+  BF_Block_SetDirty(block);
+  if (BF_UnpinBlock(block) != BF_OK)
+  {
+    return -1;
+  }
+  // Write "HT" in the beginning of first block to signify
+
+  if (BF_AllocateBlock(fd1, block) != BF_OK)
+  {
+    return -1;
+  }
+
+  data = BF_Block_GetData(block);
+
   // Write number of buckets after "HT" string.
   // Save changes to first block.
 
   BF_Block_SetDirty(block);
-
   if (BF_UnpinBlock(block) != BF_OK)
   {
     return -1;
   }
 
-  // Calculate blocks needed for index.
-  int blocksNeeded = (BF_BUFFER_SIZE % (BF_BUFFER_SIZE % buckets)) * (BF_BUFFER_SIZE % buckets); ////oysiastika ama exoyme bucket=6 tote BF_BUFFER_SIZE % buckets=16 ,etsi 6*16=96 ara max 96 block gia na einai isa
   if (blocksNeeded > BF_BUFFER_SIZE)
   {
     printf("the bucket is to big for the max size of buffer.\n");
@@ -87,7 +113,14 @@ int HT_CreateFile(char *fileName, int buckets)
       return -1;
     }
   }
-
+  // int count;
+  // BF_GetBlockCounter(fd1, &count);
+  // printf("%d,\n", count);
+  // if (BF_GetBlock(fd1, 100, block) != BF_OK)
+  // {
+  //     fprintf(stderr, "bfgetblock.\n");
+  //     return -1;
+  // }
   // Make changes and close HT file.
   BF_Block_Destroy(&block);
   if (BF_CloseFile(fd1) != BF_OK)
@@ -121,7 +154,7 @@ HT_info *HT_OpenFile(char *fileName)
   // Init block.
   BF_Block *block;
   BF_Block_Init(&block);
-  void *data;
+  char *data;
 
   if (BF_GetBlock(fd1, 0, block) != BF_OK)
   {
@@ -129,12 +162,13 @@ HT_info *HT_OpenFile(char *fileName)
     return NULL;
   }
   data = BF_Block_GetData(block);
+  // HT_block_info * hp_block=malloc(sizeof(HT_block_info));
   HT_block_info ht;
 
-  memcpy(&ht, data, 10);
+  memcpy(&ht, data, sizeof(HT_block_info));
 
   // Check if it's not HT file and close it.
-  fprintf(stderr, "hi.\n");
+
   if (ht.name[0] != 'H' && ht.name[1] != 'T') //(ht->name[0] != 'H' && ht->name[1] != 'T')
   {
     if (BF_UnpinBlock(block) != BF_OK)
@@ -150,22 +184,22 @@ HT_info *HT_OpenFile(char *fileName)
     }
     return NULL;
   }
-  fprintf(stderr, "hi.\n");
+
   // GIVE HP_INFO
-  fprintf(stderr, "hi.\n");
   HT_info *curr_HP_info = malloc(sizeof(HT_info));
   curr_HP_info->filename = fileName;
   curr_HP_info->fd1 = fd1;
   curr_HP_info->buckets = ht.buckets; // ht->blocks;
-  curr_HP_info->max_recod_in_block = (BF_BLOCK_SIZE - sizeof(HT_block_info)) % sizeof(Record);
+  curr_HP_info->max_recod_in_block = (BF_BLOCK_SIZE) / sizeof(Record);
   curr_HP_info->max_blocks = count;
+  curr_HP_info->sizeofblocks = count - 1;
   // Close block.
   if (BF_UnpinBlock(block) != BF_OK)
   {
+    printf("cannot unpin block\n");
     return NULL;
   }
   BF_Block_Destroy(&block);
-  fprintf(stderr, "hello.\n");
   return curr_HP_info;
 }
 
@@ -182,66 +216,73 @@ int HT_CloseFile(HT_info *HT_info)
 
 int HT_InsertEntry(HT_info *ht_info, Record record)
 {
-  printf("s\n");
+
   // Get hashed value:
   int fd1 = ht_info->fd1;
-  printf("s\n");
+  // giati xtipas edo
   int buckets = ht_info->buckets;
-  printf("s2\n");
+
   int hashvalue = hash(record.id, buckets);
-  printf("s3\n");
-  int block_number = hashvalue * (BF_BUFFER_SIZE % (BF_BUFFER_SIZE % buckets));
+
+  int block_number = hashvalue * (BF_BUFFER_SIZE / (BF_BUFFER_SIZE / buckets));
   // Find bucket:
-  printf("s1\n");
+
   int bucket;
-  BF_Block *Block_to_insert;
+  BF_Block *Block_to_insert, *Block_to_see;
   BF_Block_Init(&Block_to_insert);
-  printf("s2\n");
-  void *data;
-  if (BF_GetBlock(fd1, block_number, Block_to_insert) != BF_OK)
+  BF_Block_Init(&Block_to_see);
+  char *data_for_first;
+
+  if (BF_GetBlock(fd1, 0, Block_to_see) != BF_OK)
   {
     return -1;
   }
-  data = BF_Block_GetData(Block_to_insert);
+  data_for_first = BF_Block_GetData(Block_to_see);
   HT_block_info ht;
-  memcpy(&ht, data, 10);
-  printf("s3\n");
-  if (ht.curr_number < ht_info->max_recod_in_block) ////an exei xoro to proto block toy bucket valto ekei
+
+  int *curr_number;
+  memcpy(&ht, data_for_first, sizeof(HT_block_info));
+  printf("test4 ,%ld \n", sizeof(HT_block_info) + block_number * sizeof(int));
+  memcpy(curr_number, data_for_first + sizeof(HT_block_info) + block_number * sizeof(int), sizeof(int));
+  printf("test4 ,%d,%ld \n", curr_number[0], sizeof(HT_block_info) + block_number * sizeof(int));
+
+  // elenxo posa record exei to block
+  while (curr_number[0] >= ht_info->max_recod_in_block)
   {
-    int data_memory = ht.curr_number * sizeof(Record) + sizeof(HT_block_info) + 1;
+    block_number++;
+    if (block_number == ht_info->max_blocks)
+    {
+      printf("it has go to the last hash and the last hash is full\n");
+      return -1;
+    }
+    memcpy(&curr_number, data_for_first + 8 + block_number * 4, 4);
+  }
+
+  if (curr_number[0] < ht_info->max_recod_in_block)
+  {
+    printf("test2\n");
+    if (BF_GetBlock(fd1, block_number, Block_to_insert) != BF_OK)
+    {
+      return -1;
+    }
+    char *data = BF_Block_GetData(Block_to_insert);
+    int data_memory = curr_number[0] * sizeof(Record);
+    printf("test4 ,%d ,%ld,%ls \n", data_memory, sizeof(Record), curr_number);
     memcpy(data + data_memory, &record, sizeof(Record));
-  }
-  else
-  { // allios des ta epomena block toy bucket kai ama xreiastei ektos aftoy
-    while (ht.curr_number >= ht_info->max_recod_in_block)
+    printf("test5\n");
+    BF_Block_SetDirty(Block_to_insert);
+    if (BF_UnpinBlock(Block_to_insert) != BF_OK)
     {
-      if (BF_UnpinBlock(Block_to_insert) != BF_OK)
-      {
-        return -1;
-      }
-      block_number++;
-      if (block_number == ht_info->max_blocks + 1)
-      {
-        printf("the hash table its full.\n");
-        return -1;
-      }
-      if (BF_GetBlock(fd1, block_number, Block_to_insert) != BF_OK)
-      {
-        return -1;
-      }
-      data = BF_Block_GetData(Block_to_insert);
-      memcpy(&ht, data, 10);
+      return -1;
     }
-    if (ht.curr_number < ht_info->max_recod_in_block)
-    {
-      int data_memory = ht.curr_number * sizeof(Record) + sizeof(HT_block_info) + 1;
-      memcpy(data + data_memory, &record, sizeof(Record));
-    }
+    BF_Block_Destroy(&Block_to_insert);
+    printf("test6\n");
   }
-  ht.curr_number++;
-  memcpy(data, &ht, sizeof(HT_block_info));
-  BF_Block_SetDirty(Block_to_insert);
-  BF_Block_Destroy(&Block_to_insert);
+  printf("test7\n");
+  curr_number++;
+  memcpy(data_for_first + 8 + block_number * 4, &curr_number, 4);
+  BF_Block_SetDirty(Block_to_see);
+  BF_Block_Destroy(&Block_to_see);
   return block_number;
 }
 
@@ -255,9 +296,24 @@ int HT_GetAllEntries(HT_info *ht_info, void *value)
   int printed = 0;
   int id = *(int *)value;
   int hashvalue = hash(id, buckets);
-  BF_Block *Block_to_insert;
+  BF_Block *Block_to_insert, *Block_to_see;
   BF_Block_Init(&Block_to_insert);
-  int totalBlocks, block_number = 0;
+  BF_Block_Init(&Block_to_see);
+  char *data_for_first;
+  if (BF_GetBlock(fd1, 0, Block_to_see) != BF_OK)
+  {
+    return -1;
+  }
+  data_for_first = BF_Block_GetData(Block_to_see);
+  HT_block_info ht;
+  int curr_number;
+  memcpy(&ht, data_for_first, 8);
+
+  if (BF_UnpinBlock(Block_to_see) != BF_OK)
+  {
+    return -1;
+  }
+  int totalBlocks;
 
   if (BF_GetBlockCounter(fd1, &totalBlocks) != BF_OK)
   {
@@ -266,16 +322,18 @@ int HT_GetAllEntries(HT_info *ht_info, void *value)
   // AN value is NULL, print ola ta records sto hash file
   if (value == NULL)
   {
-    HT_block_info ht;
-    while (block_number <= totalBlocks)
+
+    int block_number = 1;
+
+    memcpy(&curr_number, data_for_first + 8 + block_number * 4, 4);
+    while (block_number < totalBlocks)
     {
       BF_GetBlock(fd1, block_number, Block_to_insert);
-      void *data = BF_Block_GetData(Block_to_insert);
-      memcpy(&ht, data, sizeof(HT_block_info));
-      for (int i = 0; i < ht.curr_number; i++)
+      char *data = BF_Block_GetData(Block_to_insert);
+      for (int i = 0; i < curr_number; i++)
       {
         Record rec;
-        memcpy(&rec, data + sizeof(HT_block_info) + i * sizeof(Record), sizeof(Record));
+        memcpy(&rec, data + i * sizeof(Record), sizeof(Record));
         printRecord(rec);
         printed++;
       }
@@ -284,28 +342,29 @@ int HT_GetAllEntries(HT_info *ht_info, void *value)
         return -1;
       }
       block_number++;
+      memcpy(&curr_number, data_for_first + 8 + block_number * 4, 4);
     }
   }
   else
   { // AN den einai tipose osa exoyn id=value
-    block_number = (BF_BUFFER_SIZE % (BF_BUFFER_SIZE % buckets)) * hashvalue;
+    int block_number = (BF_BUFFER_SIZE / (BF_BUFFER_SIZE / buckets)) * hashvalue;
     HT_block_info ht;
-    while (block_number <= totalBlocks)
+    while (block_number < totalBlocks)
     {
       BF_GetBlock(fd1, block_number, Block_to_insert);
-      void *data = BF_Block_GetData(Block_to_insert);
-      memcpy(&ht, data, sizeof(HT_block_info));
+      char *data = BF_Block_GetData(Block_to_insert);
       int check = 0, var = 0;
-      for (int i = 0; i < ht.curr_number; i++)
+      for (int i = 0; i < curr_number; i++)
       {
         Record rec;
-        memcpy(&rec, data + sizeof(HT_block_info) + i * sizeof(Record), sizeof(Record));
+        memcpy(&rec, data + i * sizeof(Record), sizeof(Record));
         if (rec.id == id)
         {
           check = 1;
           printRecord(rec);
           printed++;
         }
+        memcpy(&curr_number, data_for_first + 8 + block_number * 4, 4);
       }
       if (BF_UnpinBlock(Block_to_insert) != BF_OK)
       {
