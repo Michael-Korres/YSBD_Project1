@@ -5,29 +5,32 @@
 #include "bf.h"
 #include "ht_table.h"
 
-#define RECORDS_NUM 200 // you can change it if you want
+#define RECORDS_NUM 30 // you can change it if you want
 #define FILE_NAME "data.db"
 
 #define CALL_OR_DIE(call)     \
   {                           \
     BF_ErrorCode code = call; \
-    if (code != BF_OK) {      \
+    if (code != BF_OK)        \
+    {                         \
       BF_PrintError(code);    \
       exit(code);             \
     }                         \
   }
 
-int main() {
+int main()
+{
   BF_Init(LRU);
 
-  HT_CreateFile(FILE_NAME,10);
-  HT_info* info = HT_OpenFile(FILE_NAME);
+  HT_CreateFile(FILE_NAME, 10);
+  HT_info *info = HT_OpenFile(FILE_NAME);
 
   Record record;
   srand(12569874);
   int r;
   printf("Insert Entries\n");
-  for (int id = 0; id < RECORDS_NUM; ++id) {
+  for (int id = 0; id < RECORDS_NUM; ++id)
+  {
     record = randomRecord();
     HT_InsertEntry(info, record);
   }
