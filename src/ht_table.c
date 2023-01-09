@@ -49,26 +49,26 @@ int HT_CreateFile(char *fileName, int buckets)
 
   // Calculate blocks needed for index.
 
-  int a = (BF_BUFFER_SIZE / buckets);
+  int a = (BF_BUFFER_SIZE / buckets); //
 
   int b = (BF_BUFFER_SIZE / a);
 
   int blocksNeeded = (b * a); ////oysiastika ama exoyme bucket=6 tote BF_BUFFER_SIZE % buckets=16 ,etsi 6*16=96 ara max 96 block gia na einai isa
 
-  HT_block_info hp_block;
-  hp_block.name[0] = 'H';
-  hp_block.name[1] = 'T';
-  hp_block.buckets = buckets;
+  HT_block_info ht_block;
+  ht_block.name[0] = 'H';
+  ht_block.name[1] = 'T';
+  ht_block.buckets = buckets;
   if ((blocksNeeded * sizeof(int)) > BF_BLOCK_SIZE - 8)
   {
     return -1;
   }
   // int this[blocksNeeded];
-  memcpy(data, &hp_block, sizeof(HT_block_info));
+  memcpy(data, &ht_block, sizeof(HT_block_info));
+  int this = 0;
   for (int i = 0; i < blocksNeeded; i++)
   {
-    int this = 0;
-    memcpy(data + sizeof(HT_block_info) + i * sizeof(int), &this, sizeof(int));
+    memcpy(data + sizeof(HT_block_info) + i * sizeof(int), &this, sizeof(int)); //setting id = 0 for block
   }
 
   // memcpy(data + sizeof(HT_block_info), &this, (blocksNeeded * sizeof(int)));
@@ -78,8 +78,8 @@ int HT_CreateFile(char *fileName, int buckets)
   {
     return -1;
   }
-  // Write "HT" in the beginning of first block to signify
 
+  // Write "HT" in the beginning of first block to signify
   if (BF_AllocateBlock(fd1, block) != BF_OK)
   {
     return -1;
@@ -151,7 +151,7 @@ HT_info *HT_OpenFile(char *fileName)
     return NULL;
   }
   data = BF_Block_GetData(block);
-  // HT_block_info * hp_block=malloc(sizeof(HT_block_info));
+  // HT_block_info * ht_block=malloc(sizeof(HT_block_info));
   HT_block_info ht;
 
   memcpy(&ht, data, sizeof(HT_block_info));

@@ -192,8 +192,7 @@ int SHT_CloseSecondaryIndex(SHT_info *SHT_info)
   return 0;
 }
 
-int SHT_SecondaryInsertEntry(SHT_info *sht_info, Record record, int block_id)
-{
+int SHT_SecondaryInsertEntry(SHT_info *sht_info, Record record, int block_id){
   int fd1 = sht_info->fd1;
   BF_Block *Block_to_insert, *Block_to_see;
   BF_Block_Init(&Block_to_insert);
@@ -223,7 +222,7 @@ int SHT_SecondaryInsertEntry(SHT_info *sht_info, Record record, int block_id)
     int data_memory = curr_number[0] * sizeof(Record);
     memcpy(data + data_memory, &record, sizeof(Record));
     name_to_id[block_id][curr_number[0]] = record.name;
-    printf("test1,%d,%d,%s\n", block_id, curr_number[0], name_to_id[block_id][curr_number[0]]);
+    // printf("test1,%d,%d,%s\n", block_id, curr_number[0], name_to_id[block_id][curr_number[0]]);
     BF_Block_SetDirty(Block_to_insert);
     if (BF_UnpinBlock(Block_to_insert) != BF_OK)
     {
@@ -294,10 +293,11 @@ int SHT_SecondaryGetAllEntries(HT_info *ht_info, SHT_info *sht_info, char *name)
     {
       int *curr_number = (int *)(data_for_first + sizeof(HT_block_info) + i * sizeof(int));
       // printf("%d ,%d ,%s\n", i, curr_number[0], name_to_id[i][curr_number[0]]);
+
       for (int j = 0; j < curr_number[0]; j++)
       {
         printf("test6,%d,%d,%s ,%s\n", i, j, name_to_id[i][j], name);
-        if (name_to_id[i][j] == name)
+        if (strcmp(name_to_id[i][j],name) == 0)
         {
 
           BF_GetBlock(fd1, i, Block_to_insert);
