@@ -71,8 +71,6 @@ int HT_CreateFile(char *fileName, int buckets)
     memcpy(data + sizeof(HT_block_info) + i * sizeof(int), &this, sizeof(int)); //setting id = 0 for block
   }
 
-  // memcpy(data + sizeof(HT_block_info), &this, (blocksNeeded * sizeof(int)));
-
   BF_Block_SetDirty(block);
   if (BF_UnpinBlock(block) != BF_OK)
   {
@@ -102,15 +100,7 @@ int HT_CreateFile(char *fileName, int buckets)
       return -1;
     }
   }
-  // int count;
-  // BF_GetBlockCounter(fd1, &count);
-  // printf("%d,\n", count);
-  // if (BF_GetBlock(fd1, 100, block) != BF_OK)
-  // {
-  //     fprintf(stderr, "bfgetblock.\n");
-  //     return -1;
-  // }
-  // Make changes and close HT file.
+
   BF_Block_Destroy(&block);
   if (BF_CloseFile(fd1) != BF_OK)
   {
@@ -175,13 +165,13 @@ HT_info *HT_OpenFile(char *fileName)
   }
 
   // GIVE HP_INFO
-  HT_info *curr_HP_info = malloc(sizeof(HT_info));
-  curr_HP_info->filename = fileName;
-  curr_HP_info->fd1 = fd1;
-  curr_HP_info->buckets = ht.buckets; // ht->blocks;
-  curr_HP_info->max_recod_in_block = (BF_BLOCK_SIZE) / sizeof(Record);
-  curr_HP_info->max_blocks = count;
-  curr_HP_info->sizeofblocks = count - 1;
+  HT_info *curr_HT_info = malloc(sizeof(HT_info));
+  curr_HT_info->filename = fileName;
+  curr_HT_info->fd1 = fd1;
+  curr_HT_info->buckets = ht.buckets; // ht->blocks;
+  curr_HT_info->max_recod_in_block = (BF_BLOCK_SIZE) / sizeof(Record);
+  curr_HT_info->max_blocks = count;
+  curr_HT_info->sizeofblocks = count - 1;
   // Close block.
   if (BF_UnpinBlock(block) != BF_OK)
   {
@@ -189,7 +179,7 @@ HT_info *HT_OpenFile(char *fileName)
     return NULL;
   }
   BF_Block_Destroy(&block);
-  return curr_HP_info;
+  return curr_HT_info;
 }
 
 int HT_CloseFile(HT_info *HT_info)
@@ -219,8 +209,8 @@ int HT_InsertEntry(HT_info *ht_info, Record record)
   int bucket;
 
   BF_Block *Block_to_insert, *Block_to_see;
-  BF_Block_Init(&Block_to_insert);
-  BF_Block_Init(&Block_to_see);
+  BF_Block_Init(&Block_to_insert); // BAZO TO RECORD EDO
+  BF_Block_Init(&Block_to_see);    // PLIROFORIES
   char *data_for_first;
 
   if (BF_GetBlock(fd1, 0, Block_to_see) != BF_OK)
@@ -368,22 +358,6 @@ int HT_GetAllEntries(HT_info *ht_info, void *value)
         return -1;
       }
 
-      if (curr_number[0] < ht_info->max_recod_in_block)
-      {
-        break;
-      }
-      if (check == 0) // afto poy kano einai oysiastika blepo an se dyo sinexomena blocks den exei value=record.id ara den exei kata 99% balei ekei kapoio record ama exei mpei einai kaki hash table
-      {
-        if (var == 1)
-        {
-          break;
-        }
-        var = 1;
-      }
-      else
-      {
-        var = 0;
-      } ///////////////gia id meta apo ena simio den tha exei
       block_number++;
     }
   }

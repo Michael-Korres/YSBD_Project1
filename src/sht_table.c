@@ -16,9 +16,8 @@
       exit(code);             \
     }                         \
   }
-
-char *name_to_id[100][20];
-int maxy, maxi;
+char *name_to_id[100];
+int id_to_name[100], id_curr[100], maxi, name_number;
 char *filename_ht;
 
 int SHT_CreateSecondaryIndex(char *sfileName, int buckets, char *fileName)
@@ -168,7 +167,7 @@ SHT_info *SHT_OpenSecondaryIndex(char *indexName)
 
   int blocksNeeded = (b * a);
   maxi = blocksNeeded;
-  maxy = (BF_BLOCK_SIZE) / sizeof(Record);
+  name_number = 0;
   SHT_info *curr_HP_info = malloc(sizeof(SHT_info));
   curr_HP_info->Sfilename = indexName;
   curr_HP_info->fd1 = fd1;
@@ -231,6 +230,7 @@ int SHT_SecondaryInsertEntry(SHT_info *sht_info, Record record, int block_id){
     BF_Block_Destroy(&Block_to_insert);
   }
   curr_number[0]++;
+
   int da = curr_number[0];
   memcpy(data_for_first + 8 + block_id * 4, &da, 4);
   BF_Block_SetDirty(Block_to_see);
@@ -288,8 +288,7 @@ int SHT_SecondaryGetAllEntries(HT_info *ht_info, SHT_info *sht_info, char *name)
   }
   else
   {
-
-    for (int i = 1; i < maxi + 1; i++)
+    for (int i = 0; i < name_number; i++)
     {
       int *curr_number = (int *)(data_for_first + sizeof(HT_block_info) + i * sizeof(int));
       // printf("%d ,%d ,%s\n", i, curr_number[0], name_to_id[i][curr_number[0]]);
@@ -304,14 +303,17 @@ int SHT_SecondaryGetAllEntries(HT_info *ht_info, SHT_info *sht_info, char *name)
           char *data = BF_Block_GetData(Block_to_insert);
           Record rec;
 
-          memcpy(&rec, data + j * sizeof(Record), sizeof(Record));
-          printRecord(rec);
-          printed++;
+        Record rec;
+        int *curr_number = (int *)(data_for_first + sizeof(HT_block_info) + id_to_name[i] * sizeof(int));
+        BF_GetBlock(fd1, id_to_name[i], Block_to_insert);
+        char *data = BF_Block_GetData(Block_to_insert);
+        memcpy(&rec, data + id_curr[i] * sizeof(Record), sizeof(Record));
+        printRecord(rec);
+        printed++;
 
-          if (BF_UnpinBlock(Block_to_insert) != BF_OK)
-          {
-            return -1;
-          }
+        if (BF_UnpinBlock(Block_to_insert) != BF_OK)
+        {
+          return -1;
         }
       }
     }
